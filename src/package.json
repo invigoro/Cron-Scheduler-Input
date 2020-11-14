@@ -1,0 +1,30 @@
+{
+  "name": "jquery-cron-input-invigoro",
+  "version": "1.0.0",
+  "description": "Cron expressions from user input that are Quartz valid.",
+  "main": "jquery-cron-quartz.js",
+  "type": "module",
+  "scripts": {
+    "test": "printMsg()"
+  },
+  "dependencies": {
+    "jquery": "^3.2.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/invigoro/jquery-cron-quartz.git"
+  },
+  "keywords": [
+    "quartz",
+    "jquery",
+    "cron",
+    "input",
+    "scheduler"
+  ],
+  "author": "Timothy Wells",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/invigoro/jquery-cron-quartz/issues"
+  },
+  "homepage": "https://github.com/invigoro/jquery-cron-quartz#readme"
+}
