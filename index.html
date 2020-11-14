@@ -61,6 +61,16 @@
                    $('#example2-result').text(current);
                })
 
+               $('#example3-cron').cronBuilder({
+                    disabledPeriods: {
+                        seconds: true
+                    },
+                    onChange: function(expression) {
+                        $('#example3-result').text(expression);
+                    },
+                    minuteInterval: 15,
+                });
+
             });
         </script>
     </head>
@@ -138,6 +148,30 @@ $(function() {
         // Dispaly cron expression
         $('#result').text(expression);
     })
+});</pre>
+
+<br>
+            <p>In the third example, the cron expression's minute interval is limited to 15 minutes and there is no seconds option.
+            </p>
+            <div class="demo">
+                <div id="example3-cron" class="cron-builder"></div>
+                <div class="alert alert-warning">
+                    <p><strong>Cron Expression:</strong> <span id="example3-result"></span></p>
+                </div>
+            </div>
+            <pre>
+$(function() {
+
+    // Initialize DOM with cron builder
+    $('#cron').cronBuilder({
+        disabledPeriods: {
+            seconds: true
+        },
+        onChange: function(expression) {
+            $('#example3-result').text(expression);
+        },
+        minuteInterval: 15,
+    });
 });</pre>
 
             <h2>Download</h2>

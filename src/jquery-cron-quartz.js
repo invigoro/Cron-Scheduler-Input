@@ -53,15 +53,15 @@
         'en': {
             periodOpts:    ["Seconds", "Minutes", "Hourly", "Daily", "Weekly", "Monthly", "Yearly"],
             monthOpts:     ["January","February","March","April","May","June","July","August","September","October","November","December"],
-            nthWeekOpts:   ["First", "Second", "Third", "Forth"],
+            nthWeekOpts:   ["First", "Second", "Third", "Fourth"],
             dayOfWeekOpts: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
         }
     };
 
     // Convert an array of values to options to append to select input
-    function arrayToOptions(opts, values) {
+    function arrayToOptions(opts, values, start = 0, interval = 1) {
         var inputOpts='';
-        for (var i = 0; i < opts.length; i++) {
+        for (var i = start; i < opts.length; i += interval) {
             var value=opts[i];
             if(values!=null) value=values[i];
             inputOpts += "<option value='"+value+"'>" + opts[i] + "</option>\n";
@@ -71,9 +71,9 @@
     }
 
     // Convert an integer range to options to append to select input
-    function rangeToOptions(start, end, isClock) {
+    function rangeToOptions(start, end, isClock = false, interval = 1) {
         var inputOpts='', label;
-        for (var i = start; i <= end; i++) {
+        for (var i = start; i <= end; i += interval) {
             if(isClock && i < 10) label = "0" + i;
             else label = i;
             inputOpts += "<option value='"+i+"'>" + label + "</option>\n";
@@ -155,21 +155,60 @@
         // Initialization
         base.init = function() {
             base.options = $.extend({},$.cronBuilder.defaultOptions, options);
+            var disabled = base.options.disabledPeriods;
+            disabled = [
+                disabled.seconds,
+                disabled.minutes,
+                disabled.hours,
+                disabled.days,
+                disabled.weeks,
+                disabled.months,
+                disabled.years
+            ];
 
-            var periodOpts=arrayToOptions(optsText[base.options.language].periodOpts, ["Seconds", "Minutes", "Hourly", "Daily", "Weekly", "Monthly", "Yearly"]);
-            var secondOpts=rangeToOptions(1, 60);
-            var minuteOpts=rangeToOptions(1, 60);
-            var hourOpts=rangeToOptions(1, 24);
-            var dayOpts=rangeToOptions(1, 100);
-            var secondClockOpts=rangeToOptions(0, 59, true);
-            var minuteClockOpts=rangeToOptions(0, 59, true);
-            var hourClockOpts=rangeToOptions(0, 23, true);
-            var dayInMonthOpts=rangeToOptions(1, 31);
+            var periodValsArray = ["Seconds", "Minutes", "Hourly", "Daily", "Weekly", "Monthly", "Yearly"];
+            var periodOpts = [];
+            var periodVals = [];
+
+            for(var i = 0; i < disabled.length; i++){
+                if(!(disabled[i])){
+                    periodOpts.push(optsText[base.options.language].periodOpts[i]);
+                    periodVals.push(periodValsArray[i]);
+                }
+            }
+
+            var periodOpts=arrayToOptions(periodOpts, periodVals);
+
+            var si = base.options.secondInterval;
+            var mi = base.options.minuteInterval;
+            var hi = base.options.hourInterval;
+            var di = base.options.dayInterval;
+            var wi = base.options.weekInterval;
+            var moi = base.options.monthInterval;
+            var yi = base.options.yearInterval;
+            // var secondOpts=rangeToOptions(1, 60);
+            // var minuteOpts=rangeToOptions(1, 60);
+            // var hourOpts=rangeToOptions(1, 24);
+            // var dayOpts=rangeToOptions(1, 100);
+            // var secondClockOpts=rangeToOptions(0, 59, true);
+            // var minuteClockOpts=rangeToOptions(0, 59, true);
+            // var hourClockOpts=rangeToOptions(0, 23, true);
+            // var dayInMonthOpts=rangeToOptions(1, 31);
+
+            var secondOpts=rangeToOptions(si, 59, false, si);
+            var minuteOpts=rangeToOptions(mi, 59, false, mi);
+            var hourOpts=rangeToOptions(hi, 23, false, hi);
+            var dayOpts=rangeToOptions(di, 100, false, di);
+            var secondClockOpts=rangeToOptions(0, 59, true, si);
+            var minuteClockOpts=rangeToOptions(0, 59, true, mi);
+            var hourClockOpts=rangeToOptions(0, 23, true, hi);
+            var dayInMonthOpts=rangeToOptions(1, 31, false, di);
             var monthOpts=arrayToOptions(optsText[base.options.language].monthOpts,
                 [1,2,3,4,5,6,7,8,9,10,11,12]);
-            var monthNumOpts=rangeToOptions(1, 12);
-            var nthWeekOpts=arrayToOptions(optsText[base.options.language].nthWeekOpts, [1,2,3,4]);
-            var dayOfWeekOpts=arrayToOptions(optsText[base.options.language].dayOfWeekOpts, ["MON","TUE","WED","THU","FRI","SAT", "SUN"]);
+            var monthNumOpts=rangeToOptions(moi, 11, false, moi);
+            var nthWeekOpts=arrayToOptions(optsText[base.options.language].nthWeekOpts, [1,2,3,4], 0, wi);
+            var dayOfWeekOpts=arrayToOptions(optsText[base.options.language].dayOfWeekOpts,
+                ["MON","TUE","WED","THU","FRI","SAT", "SUN"], 0, di);
 
             base.$el.append(cronInputs[base.options.language].period);
             base.$el.find("div.cron-select-period label").text(base.options.selectorLabel);
@@ -229,6 +268,58 @@
             base.$el.find("select.cron-period-select")
                 .triggerHandler("change");
 
+            base.setExpression(base.options.initial);
+
+        }
+
+        base.setExpression = function(expression) {
+            var expr = expression.split(" ");
+            var sec = expr[0];
+            var min = expr[1];
+            var hr = expr[2];
+            var dy = expr[3];
+            var we = expr[4];
+            var mo = expr[5];
+            var yr = expr[6];
+            if((mo.match(/^[A-Z]{3}\#[0-5]{1}$/) && we.match(/^[0-9]{1,2}$/)) 
+            || (mo == "?" && we.match(/^[0-9]{1,2}$/))) //case 1: yearly tab
+            {
+                //switch to yearly tab
+                console.log("yearly");
+                $(base).find(".cron-select-period .cron-period-select").val("Yearly").change();
+                
+            }
+            else if((mo == "?" && we.match(/^[0-9]{1,2}\/[0-9]{1,2}$/)) || 
+            (mo.match(/^[A-Z]{3}\#[0-5]{1}$/) && (we == "*" || we.match(/^[0-9]{1,2}\/[0-9]{1,2}$/) ))) //case 2: monthly tab
+            {
+                //switch to monthly tab
+                console.log("monthly");
+            }
+            else if(mo.match(/^[A-Z]{3}((\,[A-Z]{3})*)$/)) //case 3: weekly
+            {
+                //switch to weekly tab
+                console.log("weekly");
+            }
+            else if(mo.match(/^[A-Z]{3}\-[A-Z]{3}$/) && dy.match(/^1\/[0-9]+$/)) //case 4: daily
+            {
+                //switch to daily tab
+                console.log("daily");
+            }
+            else if(min == "0" && hr == "*" || hr.match(/^1\/[0-9]+$/) || hr.match(/^[0-9]{1,2}$/)) //case 5: hourly
+            {
+                //switch to hourly tab
+                console.log("hourly");
+            }
+            else if(sec == "0" || min.match(/^1\/[0-9]+$/)) //case 6: minute
+            {
+                //switch to minute tab
+                console.log("minutes");
+            }
+            else if(sec.match(/^1\/[0-9]+$/)) //case 7: seconds
+            {
+                //switch to seconds tab
+                console.log("seconds");
+            }
         }
 
         base.getExpression = function() {
@@ -349,7 +440,24 @@
     // Plugin default options
     $.cronBuilder.defaultOptions = {
         selectorLabel: "Select period: ",
-        language: "en"
+        language: "en",
+        secondInterval: 1,
+        minuteInterval: 1,
+        hourInterval: 1,
+        dayInterval: 1,
+        weekInterval: 1,
+        monthInterval: 1,
+        yearInterval: 1,
+        initial: "0 * * * * ? *",
+        disabledPeriods: {
+            seconds: false,
+            minutes: false,
+            hours: false,
+            days: false,
+            weeks: false,
+            months: false,
+            years: false,
+        }
     };
 
     // Plugin definition
